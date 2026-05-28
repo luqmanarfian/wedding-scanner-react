@@ -46,8 +46,8 @@ export default function ScannerPage() {
   // Success sound/vibration feedback
   const playFeedback = (success) => {
     try {
-      if (navigator.vibrate) {
-        navigator.vibrate(success ? [100, 50, 100] : [300]);
+      if (globalThis.navigator?.vibrate) {
+        globalThis.navigator.vibrate(success ? [100, 50, 100] : [300]);
       }
     } catch (e) {
       console.warn('Vibration API not supported or blocked:', e);
@@ -98,7 +98,7 @@ export default function ScannerPage() {
 
   // 1. Cek Auth
   useEffect(() => {
-    if (sessionStorage.getItem('scanner_auth') !== 'true') {
+    if (globalThis.sessionStorage?.getItem('scanner_auth') !== 'true') {
       navigate('/');
     }
   }, [navigate]);
@@ -126,7 +126,7 @@ export default function ScannerPage() {
 
   const handleLogout = () => {
     stopScanner().then(() => {
-      sessionStorage.removeItem('scanner_auth');
+      globalThis.sessionStorage?.removeItem('scanner_auth');
       navigate('/');
     });
   };
@@ -145,9 +145,9 @@ export default function ScannerPage() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      globalThis.removeEventListener('keydown', handleKeyDown);
     };
   }, [showResultUi]); // Hanya re-run jika state showResultUi berubah
 
