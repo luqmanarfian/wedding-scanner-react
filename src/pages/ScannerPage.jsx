@@ -137,6 +137,20 @@ export default function ScannerPage() {
   const showResultUi = scanResult !== null;
   const showInitState = !isScannerActive && !scanResult && !apiLoading && permissionState !== 'denied';
 
+  // Listener untuk tombol Enter agar otomatis scan ulang tamu berikutnya
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Enter' && showResultUi) {
+        handleStartScan();
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showResultUi]); // Hanya re-run jika state showResultUi berubah
+
   return (
     <div className="min-h-screen bg-gradient-to-tr from-blush-50 via-white to-pink-50 flex flex-col p-4 md:p-8 w-full max-w-md md:max-w-6xl mx-auto relative overflow-hidden">
       {/* Decorative ambient background glows */}
@@ -492,9 +506,10 @@ export default function ScannerPage() {
                     {/* Action button */}
                     <button
                       onClick={handleStartScan}
-                      className="w-full bg-blush-600 hover:bg-blush-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md active:scale-95 text-base text-center"
+                      className="w-full bg-gradient-to-r from-blush-600 to-blush-500 hover:from-blush-700 hover:to-blush-600 text-white font-semibold py-3.5 px-6 rounded-xl transition-all duration-200 shadow-lg shadow-blush-500/25 active:scale-[0.98] text-base text-center flex flex-row items-center justify-center gap-1.5"
                     >
-                      Scan Tamu Lainnya
+                      <span className="leading-tight">Scan Tamu Lainnya</span>
+                      <span className="rounded bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold text-white">ENTER</span>
                     </button>
                   </div>
                 )}
