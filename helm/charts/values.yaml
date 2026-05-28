@@ -1,0 +1,73 @@
+replicaCount: 1
+
+workloadName: wedding-scanner-react
+
+image:
+  name: luqmanarfian/wedding-scanner-react
+  pullPolicy: Always
+
+volumeMounts:
+  enabled: false
+
+secret:
+  enabled: false
+
+#using yaml format
+env:
+#  - name: NODE_ENV
+#    value: "production"
+#  - name: OPENSSL_CONF
+#    value: "/dev/null"
+#  - name: NODE_OPTIONS
+#    value: --max-old-space-size=6144
+
+#using yaml format
+hostAliases: {}
+
+container:
+  port: 8080
+
+readinessProbe:
+  path: /
+  scheme: HTTP
+  initialDelaySeconds: 15
+  periodSeconds: 5
+
+#using yaml format
+resources:
+  limits:
+    cpu: "15m"
+    memory: "25Mi"
+    ephemeral-storage: 128Mi
+
+  requests:
+    cpu: "10m"
+    memory: "20Mi"
+    ephemeral-storage: 128Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 1
+  maxReplicas: 2
+  targetCPUUtilizationPercentage: 80
+  targetMemoryUtilizationPercentage: 80
+
+#using yaml format
+affinity:
+  nodeAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+      nodeSelectorTerms:
+        - matchExpressions:
+            - key: kubernetes.io/hostname
+              operator: In
+              values:
+                - luqman-server
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8080
+  protocol: TCP
+
+ingress:
+  enabled: false
