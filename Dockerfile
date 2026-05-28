@@ -12,6 +12,7 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 # Salin hanya asset dan konfigurasi yang dibutuhkan untuk proses build
+COPY .env.production ./
 COPY src ./src
 COPY public ./public
 COPY index.html vite.config.js tailwind.config.js postcss.config.js ./
