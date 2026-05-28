@@ -14,6 +14,7 @@ pipeline {
         IMAGE_TAG = "${env.GIT_COMMIT}"
         BRANCH = "main"
         SONARQUBE_SERVER = "sonarqube-server"
+        NAMESPACE = "default"
     }
 
     stages {
@@ -130,7 +131,28 @@ pipeline {
         }
         failure {
             echo "Pipeline failed! Rolling back ${APP_NAME}..."
-            sh "helm rollback ${APP_NAME} || echo 'Rollback failed or not applicable'"
+            sh """
+                echo "Failed image: ${IMAGE_NAME}:${IMAGE_TAG}"
+            
+                echo "Helm history before rollback:"
+                helm history ${APP_NAME} -n ${NAMESPACE} --max 3 || true
+            
+                echo "Rolling back ${APP_NAME} to previous Helm revision..."
+                helm rollback ${APP_NAME} -n ${NAMESPACE} || {
+                    echo "Rollback failed or not applicable"
+                    exit 1
+                }
+            
+                echo "Verifying rollback rollout..."
+                kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=180s || {
+                    echo "Rollback executed, but deployment is still unhealthy."
+                    kubectl get pods -n ${NAMESPACE} || true
+                    exit 1
+                }
+            
+                echo "Active image after rollback:"
+                kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o=jsonpath='{range .spec.template.spec.containers[*]}{.name}{": "}{.image}{"\\n"}{end}'
+            """
         }
         always {
             sh 'rm -f .env .env.production || true'
