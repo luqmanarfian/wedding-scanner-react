@@ -145,9 +145,9 @@ export default function ScannerPage() {
       }
     };
 
-    window.addEventListener('keydown', handleKeyDown);
+    globalThis.addEventListener('keydown', handleKeyDown);
     return () => {
-      window.removeEventListener('keydown', handleKeyDown);
+      globalThis.removeEventListener('keydown', handleKeyDown);
     };
   }, [showResultUi]); // Hanya re-run jika state showResultUi berubah
 
