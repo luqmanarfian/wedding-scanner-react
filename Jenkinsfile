@@ -109,18 +109,48 @@ pipeline {
             }
         }
 
-        stage('Deploy with Helm') {
+        stage('Deploy and Verify') {
             steps {
-                sh """
-                helm upgrade --install ${APP_NAME} ./helm/charts \
-                --set image.name=${IMAGE_NAME}:${IMAGE_TAG}
-                """
-            }
-        }
-
-        stage('Verify Deployment') {
-            steps {
-                sh "kubectl rollout status deployment/${APP_NAME}"
+                script {
+                    try {
+                        sh """
+                            helm upgrade --install ${APP_NAME} ./helm/charts \
+                            -n ${NAMESPACE} \
+                            --set image.name=${IMAGE_NAME}:${IMAGE_TAG}
+                        """        
+                        sh """
+                            kubectl rollout status deployment/${APP_NAME} \
+                            -n ${NAMESPACE} \
+                            --timeout=180s
+                        """
+                    } catch (err) {
+                        echo "Deployment failed. Rolling back ${APP_NAME}..."
+                        
+                        sh """
+                            echo "Failed image: ${IMAGE_NAME}:${IMAGE_TAG}"
+        
+                            echo "Helm history before rollback:"
+                            helm history ${APP_NAME} -n ${NAMESPACE} --max 3 || true
+        
+                            echo "Rolling back ${APP_NAME} to previous Helm revision..."
+                            helm rollback ${APP_NAME} -n ${NAMESPACE} || {
+                                echo "Rollback failed or not applicable"
+                                exit 1
+                            }
+        
+                            echo "Verifying rollback rollout..."
+                            kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=180s || {
+                                echo "Rollback executed, but deployment is still unhealthy."
+                                kubectl get pods -n ${NAMESPACE} || true
+                                exit 1
+                            }
+        
+                            echo "Active image after rollback:"
+                            kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o=jsonpath='{range .spec.template.spec.containers[*]}{.name}{": "}{.image}{"\\n"}{end}'
+                        """
+                        throw err
+                    }
+                }
             }
         }
     }
@@ -130,29 +160,7 @@ pipeline {
             echo "Pipeline succeeded! Image ${IMAGE_NAME}:${IMAGE_TAG} deployed."
         }
         failure {
-            echo "Pipeline failed! Rolling back ${APP_NAME}..."
-            sh """
-                echo "Failed image: ${IMAGE_NAME}:${IMAGE_TAG}"
-            
-                echo "Helm history before rollback:"
-                helm history ${APP_NAME} -n ${NAMESPACE} --max 3 || true
-            
-                echo "Rolling back ${APP_NAME} to previous Helm revision..."
-                helm rollback ${APP_NAME} -n ${NAMESPACE} || {
-                    echo "Rollback failed or not applicable"
-                    exit 1
-                }
-            
-                echo "Verifying rollback rollout..."
-                kubectl rollout status deployment/${APP_NAME} -n ${NAMESPACE} --timeout=180s || {
-                    echo "Rollback executed, but deployment is still unhealthy."
-                    kubectl get pods -n ${NAMESPACE} || true
-                    exit 1
-                }
-            
-                echo "Active image after rollback:"
-                kubectl get deployment ${APP_NAME} -n ${NAMESPACE} -o=jsonpath='{range .spec.template.spec.containers[*]}{.name}{": "}{.image}{"\\n"}{end}'
-            """
+            echo "Pipeline failed! No global rollback executed. Rollback only runs when deployment or rollout verification fails."
         }
         always {
             sh 'rm -f .env .env.production || true'
