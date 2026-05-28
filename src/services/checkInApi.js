@@ -9,11 +9,14 @@ export async function scanQrCode(qrId) {
   try {
     const url = `${GOOGLE_SHEETS_URL}?qrId=${encodeURIComponent(qrId)}`;
     const response = await fetch(url);
-    
+
+    console.log("url google sheet app: ", url)
+    console.log("response: ", response)
+
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
-    
+
     const data = await response.json();
     return data;
   } catch (error) {
