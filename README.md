@@ -130,3 +130,4 @@ src/
 ├── App.jsx         # Router & Entry point UI
 └── main.jsx        # Root render React
 ```
+
